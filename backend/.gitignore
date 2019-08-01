@@ -1,0 +1,17 @@
+dist*
+static/tmp/
+static/combined/
+*.hi
+*.o
+.hsenv*
+cabal-dev/
+.stack-work/
+.stack-work-devel/
+.cabal-sandbox
+cabal.sandbox.config
+*.swp
+*~
+\#*
+backend.cabal
+*.code-workspace
+*.lock
