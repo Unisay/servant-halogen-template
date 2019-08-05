@@ -9,9 +9,7 @@ import App.Capability.Navigate (class Navigate, navigate)
 import App.Capability.Resource.User (class ManageUser, registerUser)
 import App.Component.HTML.Layout as Layout
 import App.Component.Header as Header
-import App.Data.Email (Email)
 import App.Data.Route (Route(..))
-import App.Data.User (FirstName, SecondName)
 import App.Form.Field as Field
 import App.Form.Validation as V
 import Data.Const (Const)
@@ -19,6 +17,7 @@ import Data.Foldable (traverse_)
 import Data.Newtype (class Newtype)
 import Effect.Aff.Class (class MonadAff)
 import Formless as F
+import FusionAuth as Auth
 import Halogen as H
 import Halogen.Bulma as B
 import Halogen.HTML.Extended (a, div, h1, p_, safeHref, text)
@@ -27,11 +26,12 @@ import Halogen.HTML.Properties (class_)
 import Halogen.HTML.Properties as HP
 import Record (merge)
 
+
 newtype RegisterForm r f = RegisterForm (r
-  ( firstName :: f V.FormError String FirstName
-  , secondName :: f V.FormError String SecondName
-  , email :: f V.FormError String Email
-  , password :: f V.FormError String String
+  ( firstName :: f V.FormError String Auth.FirstName
+  , lastName :: f V.FormError String Auth.LastName
+  , email :: f V.FormError String Auth.Email
+  , password :: f V.FormError String Auth.Password
   ))
 
 derive instance newtypeRegisterForm :: Newtype (RegisterForm r f) _
@@ -79,9 +79,14 @@ component = H.mkComponent
     formInput _ =
       { validators: RegisterForm
           { firstName: V.required >>> V.firstNameFormat
-          , secondName: V.required >>> V.secondNameFormat
-          , email: V.required >>> V.minLength 3 >>> V.emailFormat
-          , password: V.required >>> V.minLength 8 >>> V.maxLength 20
+          , lastName: V.required >>> V.lastNameFormat
+          , email: V.required 
+            >>> V.minLength 3 
+            >>> V.emailFormat
+          , password: V.required 
+            >>> V.minLength 8 
+            >>> V.maxLength 20 
+            >>> V.passwordFormat
           }
       , initialInputs: Nothing
       }
@@ -97,7 +102,7 @@ component = H.mkComponent
               } `merge` Field.inputDefaults
           , Field.input $
               { label: "Second Name"
-              , sym: proxies.secondName
+              , sym: proxies.lastName
               , props: [HP.type_ HP.InputText]
               , form
               } `merge` Field.inputDefaults

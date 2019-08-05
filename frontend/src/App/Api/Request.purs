@@ -13,28 +13,26 @@ module App.Api.Request
   , RegisterFields(..)
   , LoginFields(..)
   , AuthFieldsRep(..)
-  , login
-  , register
+  , readAuthToken
+  , writeAuthToken
+  , removeAuthToken
   ) where
 
 import Prelude
 
-import Affjax (Request, printResponseFormatError, request)
+import Affjax (Request)
 import Affjax.RequestBody as RB
 import Affjax.RequestHeader (RequestHeader(..))
 import Affjax.ResponseFormat as RF
-import App.Api.Endpoint (Endpoint(..), endpointCodec)
-import App.Data.Email (Email)
+import App.Api.Endpoint (Endpoint, endpointCodec)
 import Data.Argonaut.Core (Json)
-import Data.Argonaut.Decode (decodeJson, (.:))
-import Data.Argonaut.Encode (encodeJson)
-import Data.Bifunctor (lmap)
+import Data.Array as Array
 import Data.Either (Either(..))
 import Data.HTTP.Method (Method(..))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff, liftAff)
+import FusionAuth (ApiUrl, Token, printApiUrl, printToken)
 import FusionAuth as Auth
 import Routing.Duplex (print)
 import Web.HTML (window)
@@ -60,13 +58,12 @@ type RequestOptions =
   , method :: RequestMethod
   }
 
-defaultRequest :: Auth.ApiUrl -> Maybe Auth.ApiKey -> RequestOptions -> Request Json
-defaultRequest (Auth.ApiUrl apiUrl) auth { endpoint, method } =
+defaultRequest :: ApiUrl -> Maybe Token -> RequestOptions -> Request Json
+defaultRequest apiUrl token { endpoint, method } =
   { method: Left method 
-  , url: Auth.unApiUrl apiUrl <> print endpointCodec endpoint
-  , headers: case auth of
-      Nothing -> []
-      Just (Auth.Token t) -> [ RequestHeader "Authorization" $ "Auth.Token " <> t ]
+  , url: printApiUrl apiUrl <> print endpointCodec endpoint
+  , headers: Array.fromFoldable token 
+    <#> printToken >>> append "Token " >>> RequestHeader "Authorization"
   , content: RB.json <$> body
   , username: Nothing
   , password: Nothing
@@ -82,7 +79,7 @@ defaultRequest (Auth.ApiUrl apiUrl) auth { endpoint, method } =
 
 -- | The following data types and functions aren't a natural fit for this module, but they've 
 -- | been included here because they operate on tokens. Remember: we can't create or manipulate 
--- | the `Auth.Token` type outside this module, so we'll somewhat awkwardly define the registration
+-- | the `Auth.Auth.Token` type outside this module, so we'll somewhat awkwardly define the registration
 -- | and login requests in this module. These requests will be the only way to create an auth
 -- | token in the system.
 
@@ -158,7 +155,7 @@ type Unlifted a = a
 -- | password field can be a `Maybe String` or a `String`, depending on what we need!
 -- |
 -- | By convention, I give row types that will later be used as records the `-Rep` suffix.
-type AuthFieldsRep box r = ( email :: Email, password :: box String | r )
+type AuthFieldsRep box r = ( email :: Auth.Email, password :: box Auth.Password | r )
 
 -- | Our login and registration records both require a password field with a `String` value. 
 -- | However, in the `Conduit.Capability.Resource.User` module, we'll see another record using  
@@ -182,18 +179,21 @@ type RegisterFields =
 type LoginFields = 
   {| AuthFieldsRep Unlifted () }
 
--- | This function logs a user in (if they exist), 
--- | returning an auth token and the user's minimal profile.
-login :: forall m. MonadAff m 
-  => Auth.ApiUrl -> LoginFields -> m (Either String (Tuple Auth.Token Auth.User))
-login apiUrl fields = 
-  let method = Post $ Just $ encodeJson { user: fields } 
-   in requestUser apiUrl { endpoint: Login, method }
 
--- | This function registers a user (if they don't already exist), 
--- | returning an auth token and the user's minimal profile.
-register :: forall m. MonadAff m 
-  => Auth.ApiUrl -> RegisterFields -> m (Either String (Tuple Auth.Token Auth.User))
-register apiUrl fields = 
-  let method = Post $ Just $ encodeJson { user: fields }
-   in requestUser apiUrl { endpoint: Users, method } 
+-- | The following functions deal with writing, reading, and deleting tokens in local storage at a 
+-- | particular key. They'll be used as part of our production monad, `Conduit.AppM`.
+
+tokenKey = "token" :: String
+
+readAuthToken :: Effect (Maybe Auth.Token)
+readAuthToken = do
+  str <- getItem tokenKey =<< localStorage =<< window
+  pure $ map Auth.unsafeToken str
+
+writeAuthToken :: Auth.Token -> Effect Unit
+writeAuthToken token =
+  setItem tokenKey (Auth.printToken token) =<< localStorage =<< window
+
+removeAuthToken :: Effect Unit
+removeAuthToken =
+  removeItem tokenKey =<< localStorage =<< window

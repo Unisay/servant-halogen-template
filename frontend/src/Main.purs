@@ -4,20 +4,23 @@ import Prelude
 
 import Affjax (printResponseFormatError, request)
 import App.Api.Endpoint (Endpoint(..))
-import App.Api.Request (RequestMethod(..), defaultRequest)
+import App.Api.Request (RequestMethod(..), defaultRequest, readAuthToken)
 import App.Api.Utils (decodeAt)
 import App.AppM (runAppM)
 import App.Component.Router as Router
 import App.Data.Route (routeCodec)
-import App.Env (LogLevel(..), UserEnv, Env)
+import App.Config (Config, LogLevel(..))
 import Data.Bifunctor (lmap)
 import Data.Either (hush)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
+import Data.String.NonEmpty (nes)
+import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse_)
 import Effect (Effect)
-import Effect.Aff (Aff, launchAff_)
+import Effect.Aff (Aff, error, launchAff_, throwError)
 import Effect.Aff.Bus as Bus
 import Effect.Ref as Ref
+import FusionAuth (mkApiKey, mkApiUrl, mkApplicationId)
 import Halogen (liftAff, liftEffect)
 import Halogen as H
 import Halogen.Aff as HA
@@ -29,15 +32,22 @@ import Routing.Hash (matchesWith)
 
 main :: Effect Unit
 main = HA.runHalogenAff do
-  body <- HA.awaitBody
-  
+  body <- HA.awaitBody  
   let 
-    apiUrl = Auth.ApiUrl "http://localhost:1234"
+    apiUrl = mkApiUrl
+      $ nes (SProxy :: SProxy "http://localhost:1234")
+    fusionAuthApiUrl = mkApiUrl 
+      $ nes (SProxy :: SProxy "http://localhost:9011/api")
+    fusionAuthApiKey = mkApiKey 
+      $ nes (SProxy :: SProxy "joeyL9RcHmc2ND7d52FPyLHisqNuiT882xDtx7ebZTc")
     logLevel = Dev
+  applicationId <- maybe (throwError $ error "ApplicationId") pure 
+    $ mkApplicationId
+    $ nes (SProxy :: SProxy "f4876cf7-befa-47fe-b9da-58de0179d187")
   currentUser <- liftEffect $ Ref.new Nothing
   userBus <- liftEffect Bus.make
 
-  liftEffect readToken >>= traverse_ \token -> do
+  liftEffect readAuthToken >>= traverse_ \token -> do
     let requestOptions = { endpoint: User, method: Get }
     res <- liftAff $ request 
       $ defaultRequest apiUrl (Just token) requestOptions
@@ -45,14 +55,18 @@ main = HA.runHalogenAff do
     liftEffect $ Ref.write (hush u) currentUser
 
   let 
-    environment :: Env
-    environment = { apiUrl, logLevel, userEnv }
-      where
-      userEnv :: UserEnv
-      userEnv = { currentUser, userBus }
+    config :: Config
+    config = 
+      { apiUrl
+      , applicationId 
+      , fusionAuthApiUrl
+      , fusionAuthApiKey
+      , logLevel
+      , userEnv: { currentUser, userBus }
+      }
 
     rootComponent :: H.Component HH.HTML Router.Query Unit Void Aff
-    rootComponent = H.hoist (runAppM environment) Router.component
+    rootComponent = H.hoist (runAppM config) Router.component
 
   halogenIO <- runUI rootComponent unit body
 

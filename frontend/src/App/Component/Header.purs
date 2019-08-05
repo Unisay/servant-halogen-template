@@ -9,7 +9,7 @@ module App.Component.Header
 
 import Preamble hiding (div)
 
-import App.Data.Profile (Profile)
+import App.Capability.Resource.User (User)
 import App.Data.Route (Route(..))
 import CSS (bold, fontFamily, fontSize, fontWeight, pt, sansSerif)
 import Data.Const (Const)
@@ -40,7 +40,7 @@ slot = SProxy
 component :: forall m
    . MonadEffect m 
   => Route
-  -> Maybe Profile
+  -> Maybe User
   -> H.Component HH.HTML Query Input Output m
 component route' currentUser' = H.mkComponent
   { initialState: \_ -> { isOpen: false }
@@ -55,7 +55,7 @@ component route' currentUser' = H.mkComponent
     liftEffect $ log "Toggling menu"
     H.modify_ \s -> s { isOpen = not s.isOpen }
 
-  render :: Route -> Maybe Profile -> State -> H.ComponentHTML _ _ m
+  render :: Route -> Maybe User -> State -> H.ComponentHTML _ _ m
   render route currentUser { isOpen } = nav
     [ class_ B.navbar, ARIA.role "navigation", ARIA.label "main navigation" ] 
     [ div [class_ B.navbarBrand] [logo, burger]

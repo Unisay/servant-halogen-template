@@ -16,7 +16,9 @@ import Prelude hiding ((/))
 import Data.Either (note)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Routing.Duplex (RouteDuplex', as, root, segment)
+import FusionAuth (printUserId)
+import FusionAuth as Auth
+import Routing.Duplex (RouteDuplex', as, root)
 import Routing.Duplex.Generic (noArgs, sum)
 import Routing.Duplex.Generic.Syntax ((/))
 import Slug (Slug)
@@ -55,5 +57,5 @@ slug :: RouteDuplex' String -> RouteDuplex' Slug
 slug = as Slug.toString (Slug.parse >>> note "Bad slug")
 
 -- | This combinator transforms a codec over `String` into one that operatos on the `Username` type.
-userId :: RouteDuplex' String -> RouteDuplex' UserId
-userId = as renderUserId (parseUserId >>> note "Bad UserId")
+userId :: RouteDuplex' String -> RouteDuplex' Auth.UserId
+userId = as printUserId (Auth.mkUserId >>> note "Bad UserId")

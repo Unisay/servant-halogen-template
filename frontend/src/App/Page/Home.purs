@@ -5,28 +5,27 @@ module App.Page.Home where
 import Prelude
 
 import App.Capability.Navigate (class Navigate)
+import App.Capability.Resource.User (User)
 import App.Component.HTML.Layout as Layout
 import App.Component.Header as Header
 import App.Component.Utils (busEventSource)
-import App.Data.Profile (Profile)
 import App.Data.Route (Route(..))
-import App.Env (UserEnv)
+import App.Config (UserEnv)
 import Control.Monad.Reader (class MonadAsk, asks)
 import Data.Const (Const)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Bulma as B
-import Halogen.HTML.CSS (style)
-import Halogen.HTML.Extended (section, text, h1, h2)
+import Halogen.HTML.Extended (h1, h2, text)
 import Halogen.HTML.Extended as HH
 import Halogen.HTML.Properties (class_)
 
-data Action = Initialize | HandleUserBus (Maybe Profile)
+data Action = Initialize | HandleUserBus (Maybe User)
 
 type ChildSlots = (header :: Header.Slot Unit)
 
-type State = { currentUser :: Maybe Profile, page :: Int }
+type State = { currentUser :: Maybe User, page :: Int }
 
 component
   :: forall m r
@@ -54,8 +53,8 @@ component = H.mkComponent
       _ <- H.subscribe (HandleUserBus <$> busEventSource userBus)
       pure unit
 
-    HandleUserBus profile ->
-      H.modify_ _ { currentUser = profile }
+    HandleUserBus user ->
+      H.modify_ _ { currentUser = user }
 
   render :: State -> H.ComponentHTML _ _ m
   render state@{ currentUser } = Layout.main header content

@@ -22,7 +22,6 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Extended (ClassName(..), HTML, div, i, label, maybeElem, p, span, text)
 import Halogen.HTML.Properties (class_, classes)
 import Halogen.HTML.Properties as HP
-import Record (merge)
 import Type.Row as Row
 
 -- | Formless (the form library for Halogen) supports a submit event which will attempt to validate

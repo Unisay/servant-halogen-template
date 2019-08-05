@@ -12,12 +12,12 @@ import Prelude
 
 import App.Data.Avatar (Avatar)
 import App.Data.Avatar as Avatar
-import App.Data.Email (Email(..))
-import App.Data.User (parseFirstName, parseSecondName, FirstName, SecondName)
 import Data.Either (Either(..), note)
 import Data.Maybe (Maybe(..))
 import Data.String as String
+import Data.String.NonEmpty as NES
 import Formless as F
+import FusionAuth as Auth
 
 -- | This short list of errors represent the only ways in which validation could have failed
 -- | on a given field. As our application grows, we might revise this type so that each form
@@ -28,8 +28,9 @@ data FormError
   | TooShort
   | TooLong
   | InvalidEmail
+  | InvalidPassword
   | InvalidFirstName
-  | InvalidSecondName
+  | InvalidLastName
   | InvalidAvatar
 
 -- | When a field has failed to pass validation, it will produce an error instead of a success 
@@ -41,9 +42,10 @@ errorToString = case _ of
   TooShort -> "Not enough characters entered"
   TooLong -> "Too many characters entered"
   InvalidEmail -> "Invalid email address"
+  InvalidPassword ->"Invalid password"
   InvalidFirstName -> "Invalid first name"
-  InvalidSecondName -> "Invalid second name"
-  InvalidAvatar -> "Invalid image URL"
+  InvalidLastName -> "Invalid last name"
+  InvalidAvatar -> "Invalid image URL" 
 
 -- | We're using Formless, a form library for Halogen. It abstracts away the mechanics of updating
 -- | fields, maintaining form state, applying validation, and more. Validators in Formless are
@@ -103,18 +105,23 @@ maxLength n = F.hoistFnE_ $ cond (\str -> String.length str <= n) TooLong
 -- | This validator ensures that an input string is a valid email address, using a fairly naive
 -- | requirement that it at least includes the `@` symbol. This is our first example of a validator 
 -- | that returns a different output value than its input value.
-emailFormat :: ∀ form m. Monad m => F.Validation form m FormError String Email
-emailFormat = F.hoistFnE_ $ map Email <<< cond (String.contains (String.Pattern "@")) InvalidEmail
+emailFormat :: ∀ form m. Monad m => F.Validation form m FormError String Auth.Email
+emailFormat = F.hoistFnE_ $ (NES.fromString >=> Auth.mkEmail) >>> note InvalidEmail
+
+passwordFormat :: ∀ form m. Monad m => F.Validation form m FormError String Auth.Password
+passwordFormat = F.hoistFnE_ $ (NES.fromString >=> Auth.mkPassword) >>> note InvalidPassword
 
 firstNameFormat :: forall form m 
    . Monad m 
-  => F.Validation form m FormError String FirstName
-firstNameFormat = F.hoistFnE_ $ note InvalidFirstName <<< parseFirstName
+  => F.Validation form m FormError String Auth.FirstName
+firstNameFormat = F.hoistFnE_ $ 
+  note InvalidFirstName <<< (Auth.mkFirstName <=< NES.fromString)
 
-secondNameFormat :: ∀ form m 
+lastNameFormat :: ∀ form m 
    . Monad m 
-  => F.Validation form m FormError String SecondName
-secondNameFormat = F.hoistFnE_ $ note InvalidSecondName <<< parseSecondName
+  => F.Validation form m FormError String Auth.LastName
+lastNameFormat = F.hoistFnE_ $ 
+  note InvalidLastName <<< (Auth.mkLastName <=< NES.fromString)
 
 -- | Our avatar validator follows the same pattern, validating and transforming an input string into
 -- | an `Avatar`. 

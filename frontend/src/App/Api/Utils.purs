@@ -9,18 +9,12 @@ import Affjax (request)
 import App.Api.Request (RequestOptions, defaultRequest)
 import App.Capability.LogMessages (class LogMessages, logError)
 import App.Capability.Now (class Now)
-import App.Data.Profile (Profile)
-import App.Env (UserEnv)
-import Control.Monad.Reader (class MonadAsk, ask, asks)
+import Control.Monad.Reader (class MonadAsk, ask)
 import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.:))
 import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
-import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Ref as Ref
 import FusionAuth as Auth
 
 
@@ -38,30 +32,6 @@ mkRequest opts = do
   response <- liftAff $ request $ defaultRequest apiUrl Nothing opts
   pure $ hush response.body
 
--- | Logging in and registering share a lot of behavior, namely updating the application environment
--- | and writing the auth token to local storage. This helper function makes it easy to layer those
--- | behaviors on top of the request. This also performs the work of broadcasting changes in the
--- | current user to all subscribed components.
-authenticate 
-  :: forall m a r
-   . MonadAff m
-  => MonadAsk { apiUrl :: Auth.ApiUrl, userEnv :: UserEnv | r } m
-  => LogMessages m
-  => Now m
-  => (Auth.ApiUrl -> a -> m (Either String (Tuple Auth.Token Profile))) 
-  -> a 
-  -> m (Maybe Profile)
-authenticate req fields = do 
-  { apiUrl, userEnv } <- ask
-  req apiUrl fields >>= case _ of
-    Left err -> logError err *> pure Nothing
-    Right (Tuple token profile) -> do 
-      liftEffect do 
-        writeToken token 
-        Ref.write (Just profile) userEnv.currentUser
-      -- any time we write to the current user ref, we should also broadcast the change 
-      liftAff $ Bus.write (Just profile) userEnv.userBus
-      pure (Just profile)
 
 -- | We can decode records and primitive types automatically, and we've defined custom decoders for
 -- | our custom data types. However, our API frequently returns those data structures wrapped in 

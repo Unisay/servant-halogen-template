@@ -10,11 +10,10 @@ import Preamble
 import App.Capability.LogMessages (class LogMessages)
 import App.Capability.Navigate (class Navigate, navigate)
 import App.Capability.Now (class Now)
-import App.Capability.Resource.User (class ManageUser)
+import App.Capability.Resource.User (class ManageUser, User)
 import App.Component.Utils (OpaqueSlot, busEventSource)
-import App.Data.Profile (Profile)
 import App.Data.Route (Route(..), routeCodec)
-import App.Env (UserEnv)
+import App.Config (UserEnv)
 import App.Page.Home as Home
 import App.Page.Login as Login
 import App.Page.Register as Register
@@ -31,7 +30,7 @@ import Routing.Hash (getHash)
 
 type State =
   { route :: Maybe Route 
-  , currentUser :: Maybe Profile
+  , currentUser :: Maybe User
   }
 
 data Query a
@@ -39,13 +38,13 @@ data Query a
 
 data Action 
   = Initialize 
-  | HandleUserBus (Maybe Profile)
+  | HandleUserBus (Maybe User)
 
 type ChildSlots = 
   ( home :: OpaqueSlot Unit
   , login :: OpaqueSlot Unit
   , register :: OpaqueSlot Unit
-  , profile :: OpaqueSlot Unit
+  , user :: OpaqueSlot Unit
   )
 
 component
@@ -71,7 +70,7 @@ component = H.mkComponent
   homeSlot = SProxy :: _ "home"
   loginSlot = SProxy :: _ "login"
   registerSlot = SProxy :: _ "register"
-  profileSlot = SProxy :: _ "profile"
+  userSlot = SProxy :: _ "User"
 
   handleAction :: Action -> H.HalogenM State Action ChildSlots Void m Unit
   handleAction = case _ of
@@ -80,15 +79,15 @@ component = H.mkComponent
       -- subscribe to updates any time the value changes
       { currentUser, userBus } <- asks _.userEnv
       _ <- H.subscribe (HandleUserBus <$> busEventSource userBus)
-      mbProfile <- liftEffect (Ref.read currentUser) 
-      H.modify_ _ { currentUser = mbProfile }
+      mbUser <- liftEffect (Ref.read currentUser) 
+      H.modify_ _ { currentUser = mbUser }
       -- then, we'll get the route the user landed on
       initialRoute <- hush <<< RD.parse routeCodec <$> liftEffect getHash
       -- and, finally, we'll navigate to the new route (also setting the hash)
       navigate $ fromMaybe Home initialRoute
     
-    HandleUserBus mbProfile -> do
-      H.modify_ _ { currentUser = mbProfile }
+    HandleUserBus mbUser -> do
+      H.modify_ _ { currentUser = mbUser }
 
   handleQuery :: forall a. Query a 
     -> H.HalogenM State Action ChildSlots Void m (Maybe a)
@@ -107,10 +106,10 @@ component = H.mkComponent
   -- Display the login page instead of the expected page 
   -- (if there is no current user) a simple way to restrict access.
   authorize 
-    :: Maybe Profile 
+    :: Maybe User 
     -> H.ComponentHTML Action ChildSlots m 
     -> H.ComponentHTML Action ChildSlots m
-  authorize mbProfile html = case mbProfile of
+  authorize mbUser html = case mbUser of
     Nothing ->
       HH.slot loginSlot unit Login.component { redirect: false } absurd
     Just _ ->

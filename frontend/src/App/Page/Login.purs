@@ -9,7 +9,6 @@ import App.Capability.Navigate (class Navigate, navigate)
 import App.Capability.Resource.User (class ManageUser, loginUser)
 import App.Component.HTML.Layout as Layout
 import App.Component.Header as Header
-import App.Data.Email (Email)
 import App.Data.Route (Route(..))
 import App.Form.Field as Field
 import App.Form.Validation as V
@@ -17,6 +16,7 @@ import Data.Const (Const)
 import Data.Newtype (class Newtype)
 import Effect.Aff.Class (class MonadAff)
 import Formless as F
+import FusionAuth as Auth
 import Halogen as H
 import Halogen.Bulma as B
 import Halogen.HTML.Extended (a, div, fieldset_, h1, p_, safeHref, text, whenElem)
@@ -87,8 +87,8 @@ component = H.mkComponent
 -- | https://github.com/thomashoneyman/purescript-halogen-formless
 
 newtype LoginForm r f = LoginForm (r
-  ( email :: f V.FormError String Email
-  , password :: f V.FormError String String
+  ( email :: f V.FormError String Auth.Email
+  , password :: f V.FormError String Auth.Password
   ))
 
 derive instance newtypeLoginForm :: Newtype (LoginForm r f) _
@@ -112,8 +112,13 @@ formComponent = F.component formInput $ F.defaultSpec
   formInput :: Unit -> F.Input LoginForm (loginError :: Boolean) m
   formInput _ =
     { validators: LoginForm
-        { email: V.required >>> V.minLength 3 >>> V.emailFormat
-        , password: V.required >>> V.minLength 2 >>> V.maxLength 20
+        { email: V.required 
+          >>> V.minLength 3 
+          >>> V.emailFormat
+        , password: V.required 
+          >>> V.minLength 2 
+          >>> V.maxLength 20 
+          >>> V.passwordFormat
         }
     , initialInputs: Nothing
     , loginError: false
