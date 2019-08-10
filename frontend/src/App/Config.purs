@@ -2,10 +2,9 @@ module App.Config where
 
 import Preamble
 
-import App.Capability.Resource.User (User)
 import Effect.Aff.Bus (BusRW)
 import Effect.Ref (Ref)
-import FusionAuth (ApiKey, ApiUrl, ApplicationId)
+import FusionAuth (ApiKey, ApiUrl, ApplicationId, User)
 
 type Config = 
   { logLevel :: LogLevel 

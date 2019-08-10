@@ -12,3 +12,5 @@
 /.spago
 /.psc-ide-port
 *.lock
+/public/index.js
+/public/test.html

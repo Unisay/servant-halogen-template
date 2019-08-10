@@ -24,16 +24,15 @@ import Halogen.HTML.Properties (class_, classes)
 import Halogen.HTML.Properties as HP
 import Type.Row as Row
 
--- | Formless (the form library for Halogen) supports a submit event which will attempt to validate
--- | and return the successfully-parsed fields. We can create a small helper function that creates
--- | a submit button with customizable text and the submit event triggered by a click. Since all 
--- | submit buttons in the application look the same, we can jus use this throughout the app.
-submit :: forall form act slots m. String -> F.ComponentHTML form act slots m
-submit buttonText = 
+submit :: forall form act slots m. F.ValidStatus -> Boolean -> String -> F.ComponentHTML form act slots m
+submit status submitting buttonText = 
   div 
     [ class_ B.control ]
     [ HH.button
-      [ classes [B.button, B.isLink], HE.onClick \_ -> Just F.submit ]
+      [ classes $ [B.button, B.isLink] <> guard submitting [B.isLoading]
+      , HE.onClick \_ -> Just F.submit 
+      , HP.disabled (status /= F.Valid)
+      ] 
       [ text buttonText ]
     ]
 

@@ -9,14 +9,17 @@ import App.Capability.Navigate (class Navigate, navigate)
 import App.Capability.Resource.User (class ManageUser, loginUser)
 import App.Component.HTML.Layout as Layout
 import App.Component.Header as Header
+import App.Config (UserEnv)
 import App.Data.Route (Route(..))
 import App.Form.Field as Field
 import App.Form.Validation as V
+import Control.Monad.Reader (class MonadAsk)
 import Data.Const (Const)
 import Data.Newtype (class Newtype)
 import Effect.Aff.Class (class MonadAff)
 import Formless as F
 import FusionAuth as Auth
+import FusionAuth.Login (LoginResponseF(..))
 import Halogen as H
 import Halogen.Bulma as B
 import Halogen.HTML.Extended (a, div, fieldset_, h1, p_, safeHref, text, whenElem)
@@ -40,8 +43,9 @@ type ChildSlots =
   )
 
 component
-  :: forall m
+  :: forall m r
    . MonadAff m
+  => MonadAsk { userEnv :: UserEnv | r } m
   => Navigate m
   => ManageUser m
   => H.Component HH.HTML (Const Void) Input Void m
@@ -58,11 +62,11 @@ component = H.mkComponent
       -- components so they receive the up-to-date value 
       -- (see AppM and the `authenticate` function.)
       loginUser fields >>= case _ of
-        Nothing ->
+        LoginUnsuccessful ->
           void $ H.query F._formless unit 
                $ F.injQuery 
                $ SetLoginError true unit
-        Just profile -> do
+        LoginSuccessful _ -> do
           void $ H.query F._formless unit 
                $ F.injQuery 
                $ SetLoginError false unit
@@ -70,7 +74,7 @@ component = H.mkComponent
           when st.redirect (navigate Home)
 
   header =
-    HH.slot Header.slot unit (Header.component Login Nothing) unit absurd 
+    HH.slot Header.slot unit (Header.component Login) unit absurd 
 
   content = 
     [ h1 [class_ B.title] [text "Sign In"]
@@ -134,7 +138,7 @@ formComponent = F.component formInput $ F.defaultSpec
 
   proxies = F.mkSProxies (F.FormProxy :: _ LoginForm)
 
-  renderLogin { form, loginError } =
+  renderLogin { validity, submitting, form, loginError } =
     HH.form_
       [ whenElem loginError \_ ->
           div
@@ -155,7 +159,7 @@ formComponent = F.component formInput $ F.defaultSpec
               } `merge` Field.inputDefaults
           , div [class_ B.level]
             [ div [class_ B.levelLeft]
-              [ div [class_ B.levelItem] [Field.submit "Log in"]
+              [ div [class_ B.levelItem] [Field.submit validity submitting "Log in"]
               ]
             , div [class_ B.levelRight]
               [ div [class_ B.levelItem] 

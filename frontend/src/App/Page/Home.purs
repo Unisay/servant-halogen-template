@@ -5,16 +5,16 @@ module App.Page.Home where
 import Prelude
 
 import App.Capability.Navigate (class Navigate)
-import App.Capability.Resource.User (User)
 import App.Component.HTML.Layout as Layout
 import App.Component.Header as Header
 import App.Component.Utils (busEventSource)
-import App.Data.Route (Route(..))
 import App.Config (UserEnv)
+import App.Data.Route (Route(..))
 import Control.Monad.Reader (class MonadAsk, asks)
 import Data.Const (Const)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
+import FusionAuth (User)
 import Halogen as H
 import Halogen.Bulma as B
 import Halogen.HTML.Extended (h1, h2, text)
@@ -61,7 +61,7 @@ component = H.mkComponent
     where
 
     header = 
-      HH.slot Header.slot unit (Header.component Home currentUser) unit absurd
+      HH.slot Header.slot unit (Header.component Home) unit absurd
 
     content =
       [ HH.div [class_ B.heroBody]

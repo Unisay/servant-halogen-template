@@ -28,6 +28,7 @@ data FormError
   | TooShort
   | TooLong
   | InvalidEmail
+  | NonUniqueEmail
   | InvalidPassword
   | InvalidFirstName
   | InvalidLastName
@@ -42,6 +43,7 @@ errorToString = case _ of
   TooShort -> "Not enough characters entered"
   TooLong -> "Too many characters entered"
   InvalidEmail -> "Invalid email address"
+  NonUniqueEmail -> "User with such email address is already registered"
   InvalidPassword ->"Invalid password"
   InvalidFirstName -> "Invalid first name"
   InvalidLastName -> "Invalid last name"

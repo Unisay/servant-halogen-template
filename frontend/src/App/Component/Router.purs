@@ -10,10 +10,10 @@ import Preamble
 import App.Capability.LogMessages (class LogMessages)
 import App.Capability.Navigate (class Navigate, navigate)
 import App.Capability.Now (class Now)
-import App.Capability.Resource.User (class ManageUser, User)
+import App.Capability.Resource.User (class ManageUser)
 import App.Component.Utils (OpaqueSlot, busEventSource)
-import App.Data.Route (Route(..), routeCodec)
 import App.Config (UserEnv)
+import App.Data.Route (Route(..), routeCodec)
 import App.Page.Home as Home
 import App.Page.Login as Login
 import App.Page.Register as Register
@@ -22,6 +22,7 @@ import Data.Either (hush)
 import Data.Foldable (elem)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Ref as Ref
+import FusionAuth (User)
 import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH

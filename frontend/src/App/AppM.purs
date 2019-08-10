@@ -12,15 +12,14 @@ import App.Api.Request as Request
 import App.Capability.LogMessages (class LogMessages, logError)
 import App.Capability.Navigate (class Navigate, navigate)
 import App.Capability.Now (class Now)
-import App.Capability.Resource.User (class ManageUser, User)
-import App.Config (Config, LogLevel(..), UserEnv)
+import App.Capability.Resource.User (class ManageUser)
+import App.Config (Config, LogLevel(..))
 import App.Data.Log as Log
 import App.Data.Route as Route
 import Control.Monad.Error.Class (class MonadThrow)
 import Control.Monad.Reader.Trans (class MonadAsk, ReaderT, ask, asks, runReaderT)
-import Data.Either (Either(..))
+import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff, never)
 import Effect.Aff.Bus as Bus
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -80,40 +79,30 @@ instance navigateAppM :: Navigate AppM where
     navigate Route.Home
 
 instance manageUserAppM :: ManageUser AppM where
-  loginUser = 
-    authenticate \{ email, password } -> do
-      let request = Auth.defaultLoginRequest email password
-      response <- Auth.loginUser request
-      pure $ Right $ Tuple response.token response.user
-
-  registerUser { email, password } = do
-    applicationId <- asks _.applicationId
-    let 
-      user = Auth.defaultUserOut 
-        { email = Just email 
-        , password = Just password
-        }
-      registration = Auth.defaultRegistration applicationId
-      request = Auth.defaultRegisterRequest user registration
-    Auth.registerUser request <#> _.user >>> Just
-
-authenticate 
-  :: forall m a r
-   . MonadAff m
-  => MonadAsk { userEnv :: UserEnv | r } m
-  => LogMessages m
-  => Now m
-  => (a -> m (Either String (Tuple Auth.Token User))) 
-  -> a 
-  -> m (Maybe User)
-authenticate req fields = do 
-  { userEnv } <- ask
-  req fields >>= case _ of
-    Left err -> logError err *> pure Nothing
-    Right (Tuple token user) -> do 
+  loginUser { email, password } = do
+    let request = Auth.defaultLoginRequest email password
+    response <- Auth.loginUser request
+    for_ response \{ token, user } -> do 
+      { userEnv } <- ask
       liftEffect do 
         writeAuthToken token 
         Ref.write (Just user) userEnv.currentUser
-      -- any time we write to the current user ref, we should also broadcast the change 
+      -- any time we write to the current user ref, 
+      -- we should also broadcast the change 
       liftAff $ Bus.write (Just user) userEnv.userBus
-      pure (Just user)
+    pure response
+
+  registerUser info = do
+    applicationId <- asks _.applicationId
+    let 
+      user = Auth.defaultUserOut 
+        { email = pure info.email 
+        , password = pure info.password
+        , firstName = pure info.firstName
+        , lastName = pure info.lastName
+        }
+      registration = Auth.defaultRegistration applicationId
+      request = Auth.defaultRegisterRequest user registration
+    Auth.registerUser request
+
+  findUserByEmail = Auth.findUserByEmail 

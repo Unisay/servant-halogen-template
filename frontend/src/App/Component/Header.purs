@@ -9,20 +9,27 @@ module App.Component.Header
 
 import Preamble hiding (div)
 
-import App.Capability.Resource.User (User)
+import App.Capability.Navigate (class Navigate, logout)
+import App.Component.Utils (busEventSource)
+import App.Config (UserEnv)
 import App.Data.Route (Route(..))
 import CSS (bold, fontFamily, fontSize, fontWeight, pt, sansSerif)
+import Control.Monad.Reader (class MonadAsk, asks)
 import Data.Const (Const)
+import Data.Foldable (intercalate)
 import Data.Monoid (guard)
 import Data.NonEmpty (singleton)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
+import Effect.Ref as Ref
+import FusionAuth (User, printFirstName, printLastName)
 import Halogen as H
 import Halogen.Bulma as B
 import Halogen.HTML.CSS (style)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Extended (HTML, dataAttr, span) as HH
-import Halogen.HTML.Extended (a, className, css, div, nav, safeHref, strong_, text)
+import Halogen.HTML.Extended (a, className, css, div, maybeElem, nav, safeHref, strong_, text, whenElem)
 import Halogen.HTML.Properties (class_, classes, id_)
 import Halogen.HTML.Properties.ARIA as ARIA
 
@@ -31,32 +38,51 @@ type Query = Const Void
 type Input = Unit
 type Output = Void
 type Slot = H.Slot Query Output
-data Action = ToggleMenu
-type State = { isOpen :: Boolean }
+type State = { isOpen :: Boolean, currentUser :: Maybe User }
+data Action 
+  = Initialize
+  | ToggleMenu
+  | HandleUserBus (Maybe User)
+  | Logout
 
 slot :: SProxy "header"
 slot = SProxy
 
-component :: forall m
+component :: forall m r
    . MonadEffect m 
+  => MonadAff m
+  => MonadAsk { userEnv :: UserEnv | r } m
+  => Navigate m
   => Route
-  -> Maybe User
   -> H.Component HH.HTML Query Input Output m
-component route' currentUser' = H.mkComponent
-  { initialState: \_ -> { isOpen: false }
-  , render: render route' currentUser'
-  , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
+component route' = H.mkComponent
+  { initialState: \_ -> { isOpen: false, currentUser: Nothing }
+  , render: \state -> render route' state
+  , eval: H.mkEval $ H.defaultEval 
+    { handleAction = handleAction 
+    , initialize = pure Initialize
+    }
   }
 
   where
 
-  handleAction :: Action -> H.HalogenM _ _ _ _ _ Unit
-  handleAction ToggleMenu = do
-    liftEffect $ log "Toggling menu"
-    H.modify_ \s -> s { isOpen = not s.isOpen }
+  handleAction :: Action -> H.HalogenM State Action _ Void m Unit
+  handleAction = case _ of 
+    Initialize ->  do
+      { currentUser, userBus } <- asks _.userEnv
+      _ <- H.subscribe (HandleUserBus <$> busEventSource userBus)
+      mbUser <- liftEffect $ Ref.read currentUser
+      H.modify_ _ { currentUser = mbUser }
+    ToggleMenu -> do
+      liftEffect $ log "Toggling menu"
+      H.modify_ \s -> s { isOpen = not s.isOpen }
+    Logout -> 
+      logout
+    HandleUserBus user ->
+      H.modify_ _ { currentUser = user }
 
-  render :: Route -> Maybe User -> State -> H.ComponentHTML _ _ m
-  render route currentUser { isOpen } = nav
+  render :: Route -> State -> H.ComponentHTML _ _ m
+  render route { isOpen, currentUser } = nav
     [ class_ B.navbar, ARIA.role "navigation", ARIA.label "main navigation" ] 
     [ div [class_ B.navbarBrand] [logo, burger]
     , div 
@@ -67,13 +93,27 @@ component route' currentUser' = H.mkComponent
         [ navItem Home [text "Home"]
         ]
       , div [class_ B.navbarEnd]
-        [ div [class_ B.navbarItem]
-          [ div [className "buttons"]
-            [ a [classes [B.button, B.isPrimary], safeHref Register]
-              [ strong_ [text "Sign up"] ]
-            , a [classes [B.button, B.isLight], safeHref Login][text "Log in"]
-            ]
-          ]
+        [ maybeElem currentUser \user ->
+            div [class_ B.navbarItem]
+              [ text $ intercalate " " 
+                [ "Signed in as "
+                , maybe "" printFirstName user.firstName 
+                , maybe "" printLastName user.lastName
+                ]
+              ]
+        , maybeElem currentUser \user ->
+            div [class_ B.navbarItem]
+              [ a [classes [B.button, B.isPrimary], HE.onClick $ const $ Just Logout]
+                    [ strong_ [text "Sign out"] ]
+              ]
+        , whenElem (isNothing currentUser) \_ -> 
+            div [class_ B.navbarItem]
+              [ div [className "buttons"]
+                [ a [classes [B.button, B.isPrimary], safeHref Register]
+                  [ strong_ [text "Sign up"] ]
+                , a [classes [B.button, B.isLight], safeHref Login][text "Log in"]
+                ]
+              ]
         ]
       ]
     ]
