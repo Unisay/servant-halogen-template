@@ -1,14 +1,21 @@
 module Server.Api
-  ( UserApi
+  ( Api
   ) where
 
-import Domain      (User, UserData)
-import Servant.API ((:>), JSON, Post, ReqBody)
+import Domain
+import Servant.API
 
-type ProtectedApi api = api
+import Servant.Server.Experimental.Auth (AuthServerData)
+import Server.Auth                      (JwtPayload)
 
-type UnprotectedUserApi = "users"
-  :> ReqBody '[JSON] UserData
-  :> Post '[JSON] User
 
-type UserApi = ProtectedApi UnprotectedUserApi
+type ProtectedApi api = AuthProtect "jwt-auth" :> api
+
+type UnprotectedExecApi = "execute"
+  :> Capture "target" ExecTarget
+  :> ReqBody '[JSON] ExecConfig
+  :> Post '[JSON] ExecResult
+
+type instance AuthServerData (AuthProtect "jwt-auth") = JwtPayload
+
+type Api = ProtectedApi UnprotectedExecApi

@@ -7,13 +7,17 @@ module Domain
   , Email
   , mkEmail
   , unEmail
+  , ExecTarget (..)
+  , ExecConfig (..)
+  , ExecResult (..)
   ) where
 
 import           Preamble
 
-import           Data.Aeson (FromJSON, ToJSON)
+import           Data.Aeson (Value, FromJSON, ToJSON)
 import           Data.Time  (UTCTime)
 
+import Servant.API
 import qualified Data.Text  as T
 
 
@@ -63,3 +67,23 @@ data User
   }
   deriving stock (Show, Generic)
   deriving (ToJSON, FromJSON)
+
+data ExecTarget 
+  = ListProcesses
+
+instance FromHttpApiData ExecTarget where
+  parseUrlPiece "processes" = return ListProcesses
+  parseUrlPiece _ = throwError "Unknown command to execute"
+  
+
+newtype ExecConfig = ExecConfig Value
+  deriving newtype (Eq, Show, ToJSON, FromJSON)
+
+data ExecResult 
+  = ExecResult
+  { _execResultStdout :: Text 
+  , _execResultStderr :: Text
+  } deriving stock (Eq, Show, Generic)
+
+instance ToJSON ExecResult
+

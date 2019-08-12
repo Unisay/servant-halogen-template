@@ -2,11 +2,10 @@ module Server
   ( server
   ) where
 
-import Servant
+import Servant         (Server)
+import Server.Api      (Api)
+import Server.Handlers (execute)
 
-import Server.Api      (UserApi)
-import Server.Handlers (users)
 
-
-server :: Server UserApi
-server = users
+server :: Server Api
+server = execute

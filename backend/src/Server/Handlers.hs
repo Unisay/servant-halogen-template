@@ -1,10 +1,12 @@
 module Server.Handlers
-  ( users
+  ( execute
   ) where
 
-import Capability.MonadUser (MonadUser (..))
-import Domain               (User, UserData)
+import Domain
 
+import Capability.MonadExec (MonadExec (..))
+import Servant              (Handler)
+import Server.Auth          (JwtPayload)
 
-users :: MonadUser m => UserData -> m User
-users = register
+execute :: JwtPayload -> ExecTarget -> ExecConfig -> Handler ExecResult
+execute _ = exec

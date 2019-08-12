@@ -1,13 +1,19 @@
-module Main (run) where
+module Main
+  ( run
+  )
+where
 
-import           Control.Exception        (bracket)
-import           Network.Wai              (Application)
-import           Preamble
-import           Servant                  (serve)
-import           Server                   (server)
-import           Server.Api               (UserApi)
-import           System                   (EnvVariables (..), loadEnvVariables)
-import           Types
+import Preamble
+
+import Control.Exception                (bracket)
+import Network.Wai                      (Application, Request)
+import Servant                          (Context (..), serveWithContext)
+import Servant.Server.Experimental.Auth (AuthHandler)
+import Server                           (server)
+import Server.Api                       (Api)
+import Server.Auth                      (JwtPayload, authHandler)
+import System                           (EnvVariables (..), loadEnvVariables)
+import Types                            (Config (..), unTcpPort)
 
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified System.Remote.Monitoring as EKG
@@ -21,19 +27,22 @@ run = bracket initConfiguration shutdownConfiguration $ \config -> do
   Warp.run port waiApplication
 
 mkWaiApplicatoin :: Config -> IO Application
-mkWaiApplicatoin _ = return $ serve (Proxy @UserApi) server
+mkWaiApplicatoin config =
+  return $ serveWithContext (Proxy @Api) (genAuthServerContext config) server
 
--- | Allocates resources for 'Env'
+genAuthServerContext :: Config -> Context (AuthHandler Request JwtPayload ': '[])
+genAuthServerContext config = authHandler config :. EmptyContext
+
 initConfiguration :: IO Config
 initConfiguration = do
   envVars <- loadEnvVariables
   let ekgServerPort = unTcpPort $ _envVariablesEkgServerPort envVars
   ekgServer <- EKG.forkServer "localhost" ekgServerPort
-  pure Config
-    { _configApiServerPort = _envVariablesApiServerPort envVars
-    , _configEnvironment = _envVariablesEnvironment envVars
-    , _configEkgServer = EKG.serverThreadId ekgServer
-    }
+  pure Config { _configApiServerPort = _envVariablesApiServerPort envVars
+              , _configEnvironment   = _envVariablesEnvironment envVars
+              , _configEkgServer     = EKG.serverThreadId ekgServer
+              , _configAuthApi       = _envVariablesAuthApi envVars
+              }
 
 shutdownConfiguration :: Config -> IO ()
 shutdownConfiguration config = do

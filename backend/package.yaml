@@ -1,118 +1,118 @@
 name: backend
-version: "0.1.0.0"
-category: "web"
-author: "Yuriy Lazarev"
+version: 0.1.0.0
+category: web
+author: Yuriy Lazarev
 maintainer: unisay@users.noreply.github.com
-copyright: "Yuriy Lazarev"
-github: "unisay/backend"
+copyright: Yuriy Lazarev
+github: unisay/backend
 extra-source-files:
-- README.md
-
+  - README.md
 ghc-options:
-- -Wall
-- -Wcompat
-- -Wincomplete-record-updates
-- -Wincomplete-uni-patterns
-- -Wredundant-constraints
-- -Wimplicit-prelude
-- -Wtabs
-- -Wmissing-local-signatures
-- -fhelpful-errors
-
+  - '-Wall'
+  - '-Wcompat'
+  - '-Wincomplete-record-updates'
+  - '-Wincomplete-uni-patterns'
+  - '-Wredundant-constraints'
+  - '-Wimplicit-prelude'
+  - '-Wtabs'
+  - '-Wmissing-local-signatures'
+  - '-fhelpful-errors'
 default-extensions:
-- ApplicativeDo
-- BangPatterns
-- ConstraintKinds
-- DataKinds
-- DefaultSignatures
-- DeriveAnyClass
-- DeriveFoldable
-- DeriveFunctor
-- DeriveGeneric
-- DeriveLift
-- DeriveTraversable
-- DerivingStrategies
-- DerivingVia
-- EmptyCase
-- ExistentialQuantification
-- FlexibleContexts
-- FlexibleInstances
-- FunctionalDependencies
-- GADTs
-- GeneralizedNewtypeDeriving
-- InstanceSigs
-- KindSignatures
-- LambdaCase
-- MultiParamTypeClasses
-- MultiWayIf
-- NamedFieldPuns
-- NoImplicitPrelude
-- OverloadedLabels
-- OverloadedStrings
-- PatternSynonyms
-- RankNTypes
-- ScopedTypeVariables
-- StandaloneDeriving
-- TupleSections
-- TypeApplications
-- TypeFamilies
-- TypeFamilyDependencies
-- TypeOperators
-
+  - ApplicativeDo
+  - BangPatterns
+  - ConstraintKinds
+  - DataKinds
+  - DefaultSignatures
+  - DeriveAnyClass
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveLift
+  - DeriveTraversable
+  - DerivingStrategies
+  - DerivingVia
+  - EmptyCase
+  - ExistentialQuantification
+  - FlexibleContexts
+  - FlexibleInstances
+  - FunctionalDependencies
+  - GADTs
+  - GeneralizedNewtypeDeriving
+  - InstanceSigs
+  - KindSignatures
+  - LambdaCase
+  - MultiParamTypeClasses
+  - MultiWayIf
+  - NamedFieldPuns
+  - NoImplicitPrelude
+  - OverloadedLabels
+  - OverloadedStrings
+  - PatternSynonyms
+  - RankNTypes
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TupleSections
+  - TypeApplications
+  - TypeFamilies
+  - TypeFamilyDependencies
+  - TypeOperators
 dependencies:
-- base
-- protolude
-
-_common-deps: &common-deps
-- aeson
-- ekg
-- envy
-- exceptions
-- lens
-- mtl
-- monad-logger
-- network-uri
-- protolude
-- servant
-- servant-server
-- text
-- time
-- transformers
-- unordered-containers
-- wai
-- warp
-
+  - base
+  - protolude
+  - servant
+_common-deps: &ref_0
+  - aeson
+  - bytestring
+  - ekg
+  - envy
+  - exceptions
+  - http-conduit
+  - http-client
+  - http-types
+  - lens
+  - mtl
+  - monad-logger
+  - network-uri
+  - process
+  - protolude
+  - refined
+  - servant
+  - servant-server
+  - text
+  - time
+  - transformers
+  - unordered-containers
+  - uuid
+  - wai
+  - warp
 library:
   source-dirs: src
   exposed-modules:
-  - Main
-  dependencies: *common-deps
-
+    - Main
+  dependencies: *ref_0
 internal-libraries:
   backend-internal:
     source-dirs: src
     exposed-modules:
-    - Preamble
-    dependencies: *common-deps
-
+      - Preamble
+    dependencies: *ref_0
 executables:
   backend:
     main: App
     source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    - '-threaded'
+    - '-rtsopts'
+    - '-with-rtsopts=-N'
     dependencies:
     - backend
-
 tests:
   spec:
     main: Main
     source-dirs:
-    - test
+      - test
     dependencies:
-    - backend-internal
-    - hedgehog
+      - backend-internal
+      - hedgehog
     ghc-options:
-    - -threaded
+      - '-threaded'

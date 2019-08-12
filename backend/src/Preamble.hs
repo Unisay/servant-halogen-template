@@ -5,10 +5,12 @@ module Preamble
   , (.!!)
   , (.!!!)
   , (.!!!!)
+  , (>>>)
   ) where
 
 import Data.Maybe
 import Protolude
+import Control.Arrow ((>>>))
 
 (.!) :: (b -> c) -> (a -> b) -> a -> c
 (.!) = (.)

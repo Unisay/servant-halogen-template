@@ -1,1 +1,4 @@
-resolver: lts-13.30
+resolver: lts-14.0
+extra-deps:
+- refined-0.4.2.2@sha256:52adff15a70ed485a126b6fcf0e23a0f8ce1c949a4983af49ccb14a1d51c4fe1,2219
+- QuickCheck-2.12.6.1@sha256:ce974f511174fbc3102bccb13d6d45781d327194f0311790b9f8db6a7cb1bab3,6336
