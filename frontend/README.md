@@ -1,11 +1,5 @@
-Haskell Servant / PureScript Halogen5 Template
+Frontend (Browser) application
 ===
-
-## Project Structure
-* `backend` - backend code (Haskell)
-* `frontend` - frontend code (PureScript)
-
-## Frontend
 
 ### Installation
 
