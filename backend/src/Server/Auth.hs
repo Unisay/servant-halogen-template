@@ -12,7 +12,7 @@ where
 
 import Preamble hiding (exp)
 
-import Control.Monad.Logger             (logError, runStderrLoggingT)
+import Control.Monad.Logger             (logWarn, runStderrLoggingT)
 import Data.Aeson                       (FromJSON, ToJSON, parseJSON,
                                          withObject, (.:), (.:?))
 import Data.List                        (lookup)
@@ -80,14 +80,15 @@ authHandler config = mkAuthHandler $ \req ->
       request  <- HS.parseRequestThrow $ baseUrlToString url
       response <-
         liftIO
-        $ HS.httpJSON
+        $ HS.httpJSONEither
+        $ HS.setRequestIgnoreStatus
         $ HS.setRequestHeader hAuthorization ["JWT " <> token]
         $ request
       let status = HS.getResponseStatus response
       if (status == ok200)
-        then return $ HS.getResponseBody response
+        then either throwIO return $ HS.getResponseBody response
         else runStderrLoggingT $ do
-          $(logError)
+          $(logWarn)
             $  "Failed to validate JWT token, response status = "
             <> show status
           lift unauthorized

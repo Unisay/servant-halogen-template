@@ -125,7 +125,36 @@ let overrides =
 
 let additions =
       { fusionauth =
-          ../../purescript/purescript-fusionauth/spago.dhall as Location
+          mkPackage
+          [ "aff"
+          , "affjax"
+          , "argonaut"
+          , "argonaut-codecs"
+          , "arrays"
+          , "debug"
+          , "datetime"
+          , "either"
+          , "generics-rep"
+          , "formatters"
+          , "form-urlencoded"
+          , "string-parsers"
+          , "profunctor-lenses"
+          , "lists"
+          , "maybe"
+          , "newtype"
+          , "nonempty"
+          , "ordered-collections"
+          , "effect"
+          , "console"
+          , "partial"
+          , "psci-support"
+          , "stringutils"
+          , "unicode"
+          , "uri"
+          , "uuid"
+          ]
+          "https://github.com/Unisay/purescript-fusionauth.git"
+          "master"
       , halogen-bulma =
           mkPackage
           [ "halogen" ]
@@ -177,8 +206,7 @@ let additions =
           "v5.1.1"
       , uuid =
           mkPackage
-          [ "effect"
-          ]
+          [ "effect" ]
           "https://github.com/spicydonuts/purescript-uuid.git"
           "v6.0.0"
       }

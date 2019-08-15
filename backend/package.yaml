@@ -19,7 +19,9 @@ ghc-options:
   - '-fhelpful-errors'
 default-extensions:
   - ApplicativeDo
+  - AutoDeriveTypeable
   - BangPatterns
+  - BinaryLiterals
   - ConstraintKinds
   - DataKinds
   - DefaultSignatures

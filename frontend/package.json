@@ -6,13 +6,12 @@
   "license": "MIT",
   "dependencies": {
     "bulma": "^0.7.5",
-    "parcel": "^1.12.3",
-    "parcel-bundler": "^1.12.3",
     "uuid": "^3.3.2",
     "uuid-validate": "^0.0.3"
   },
   "scripts": {
-    "serve": "parcel serve public/index.html --open",
+    "serve-headless": "parcel serve -p 1234 --hmr-port 1235 public/index.html",
+    "serve": "yarn serve-headless --open",
     "test": "echo \"Error: no test specified\" && exit 1",
     "install": "spago install",
     "build-production": "spago bundle-app --to public/index.js && parcel build public/index.html",
@@ -20,6 +19,7 @@
     "clean": "rm -rf .cache .spago .psci_modules node_modules output dist"
   },
   "devDependencies": {
+    "parcel-bundler": "^1.12.3",
     "sass": "^1.22.9"
   }
 }

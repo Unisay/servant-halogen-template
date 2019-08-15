@@ -1,0 +1,6 @@
+.cache
+.spago
+node_modules
+output
+test
+*.log
